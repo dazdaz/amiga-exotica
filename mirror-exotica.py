@@ -7,29 +7,29 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import random
-
 PROGRESS_FILE = 'progress.json'
 DOWNLOAD_DIR = 'amiga_music_by_author'
 FTP_HOST = 'ftp.exotica.org.uk'
-FTP_BASE_PATH = '/pub/exotica/media/audio/UnExoticA/Game/'
+BASE_PATHS = [
+    '/pub/exotica/media/audio/UnExoticA/Game/',
+    '/pub/exotica/media/audio/UnExoticA/Demo/'
+]
 MAX_PARALLEL_DOWNLOADS = 3
 MAX_RETRIES = 3
-FTP_TIMEOUT = 30  # seconds
-
-def collect_files(ftp: ftplib.FTP, current_path: str) -> List[Dict[str, str]]:
+FTP_TIMEOUT = 30 # seconds
+def collect_files(ftp: ftplib.FTP, current_path: str, category: str) -> List[Dict[str, str]]:
     files_to_download = []
     try:
         items = ftp.nlst()
     except ftplib.error_perm as e:
         if str(e).startswith('550'):
-            return []  # No files or permission
+            return [] # No files or permission
         raise
-
     for item in items:
         try:
             ftp.cwd(item)
             # It's a directory, recurse
-            sub_files = collect_files(ftp, os.path.join(current_path, item))
+            sub_files = collect_files(ftp, os.path.join(current_path, item), category)
             files_to_download.extend(sub_files)
             ftp.cwd('..')
         except ftplib.error_perm:
@@ -38,21 +38,18 @@ def collect_files(ftp: ftplib.FTP, current_path: str) -> List[Dict[str, str]]:
                 remote_path = os.path.join(current_path, item)
                 # Author is the parent dir name
                 author = os.path.basename(os.path.dirname(remote_path))
-                local_path = os.path.join(DOWNLOAD_DIR, author, item)
+                local_path = os.path.join(DOWNLOAD_DIR, category, author, item)
                 files_to_download.append({'remote_path': remote_path, 'local_path': local_path})
     return files_to_download
-
 def save_progress(to_download: List[Dict[str, str]], completed: set):
     with open(PROGRESS_FILE, 'w') as f:
         json.dump({'to_download': to_download, 'completed': list(completed)}, f)
-
 def load_progress() -> tuple[List[Dict[str, str]], set]:
     if os.path.exists(PROGRESS_FILE):
         with open(PROGRESS_FILE, 'r') as f:
             data = json.load(f)
             return data['to_download'], set(data['completed'])
     return None, None
-
 def download_file(file_info, lock):
     remote_path = file_info['remote_path']
     local_path = file_info['local_path']
@@ -62,7 +59,7 @@ def download_file(file_info, lock):
             with ftplib.FTP(FTP_HOST, timeout=FTP_TIMEOUT) as ftp:
                 ftp.login()
                 ftp.cwd(os.path.dirname(remote_path))
-                ftp.voidcmd('TYPE I')  # Switch to binary mode for SIZE command
+                ftp.voidcmd('TYPE I') # Switch to binary mode for SIZE command
                 remote_size = ftp.size(filename)
                 local_size = os.path.getsize(local_path) if os.path.exists(local_path) else 0
                 if local_size == remote_size:
@@ -102,7 +99,6 @@ def download_file(file_info, lock):
                 time.sleep(sleep_time)
                 continue
             raise
-
 def main():
     global to_download, completed
     to_download, completed = load_progress()
@@ -113,44 +109,38 @@ def main():
         recollect = recollect_input in ['yes', 'y']
     else:
         recollect = True
-
     with ftplib.FTP(FTP_HOST, timeout=FTP_TIMEOUT) as ftp:
-        ftp.login()  # Anonymous login
-        ftp.cwd(FTP_BASE_PATH)
-
+        ftp.login() # Anonymous login
         if recollect:
             print("Collecting list of files to download...")
-            to_download = collect_files(ftp, FTP_BASE_PATH)
+            to_download = []
+            for base_path in BASE_PATHS:
+                category = os.path.basename(base_path.rstrip('/'))
+                ftp.cwd(base_path)
+                sub_files = collect_files(ftp, base_path, category)
+                to_download.extend(sub_files)
             completed = set()
             save_progress(to_download, completed)
             print(f"Found {len(to_download)} files to download.")
-
     # List what will be downloaded
     print(f"Total files to download: {len(to_download)}")
     print("Examples:")
     for file in to_download[:5] + to_download[-5:]:
         print(f"- {file['remote_path']} -> {file['local_path']}")
-
     proceed = input("Proceed with download? (yes/no): ").strip().lower()
     if proceed not in ['yes', 'y']:
         print("Download cancelled.")
         return
-
     pending = [f for f in to_download if f['remote_path'] not in completed]
-
     if not pending:
         print("All files already downloaded.")
         return
-
     lock = threading.Lock()
-
     with ThreadPoolExecutor(max_workers=MAX_PARALLEL_DOWNLOADS) as executor:
         futures = [executor.submit(download_file, file_info, lock) for file_info in pending]
         for future in as_completed(futures):
-            future.result()  # Raise any exceptions
-
+            future.result() # Raise any exceptions
     print("Download completed.")
-
 if __name__ == "__main__":
     try:
         main()
