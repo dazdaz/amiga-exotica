@@ -1,4 +1,6 @@
-# Music Player - Play compressed .lha files using uade123 without having to worry about decompressing them 🎵
+# Amiga Music Player 🎵
+
+Play compressed .lha files using uade123 without having to worry about decompressing them.
 
 A Python script to extract and play music from Amiga LHA archives.
 
