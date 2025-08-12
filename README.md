@@ -6,6 +6,6 @@
 
 * ***mirror-exotica.py*** Mirror ftp.exotica.org.uk` - This Python script is a multi-threaded FTP downloader for Amiga music files (`.lha` archives) from the `UnExoticA/Game` directory on `ftp.exotica.org.uk`. It organizes downloads by author into a local `amiga_music_by_author` directory, supports pausing/resuming via a `progress.json` file, and handles connection errors gracefully. Takes about 25 minutes.
 
-* ***play_lha_uade123.py*** Play a .lha file using uade123
+* ***play_lha_uade123.py*** Play the music files within a .lha file using uade123 and then removes the extracted files afterwards.
 
-* ***convert-lha2mp3.py*** Converts all files within a compressed .lha file from their native format into .mp3 (assuming uade123 supports)
+* ***convert-lha2mp3.py*** Converts all files within a compressed .lha file from their native format into .mp3 (assuming uade123 supports).
