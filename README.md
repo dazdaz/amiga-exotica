@@ -7,5 +7,5 @@ This Python script is a multi-threaded FTP downloader for Amiga music files (`.l
 ## Overview
 
 * ***mirror-exotica.py*** Mirror ftp.exotica.org.uk` - takes about 25 minutes
-* ***extract_play_uade123.py*** Play a .lha file using uade123
-* ***encode-lha2mp3.py*** Converts all files within a compressed .lha file into .mp3
+* ***play_lha_uade123.py*** Play a .lha file using uade123
+* ***convert-lha2mp3.py*** Converts all files within a compressed .lha file into .mp3
