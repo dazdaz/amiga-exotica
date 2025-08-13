@@ -25,9 +25,10 @@ def main(paths):
     lha_paths = []
     for path in paths:
         if os.path.isdir(path):
-            for filename in os.listdir(path):
-                if filename.lower().endswith('.lha'):
-                    lha_paths.append(os.path.join(path, filename))
+            for root, dirs, files in os.walk(path):
+                for filename in files:
+                    if filename.lower().endswith('.lha'):
+                        lha_paths.append(os.path.join(root, filename))
         elif os.path.isfile(path) and path.lower().endswith('.lha'):
             lha_paths.append(path)
         else:
@@ -82,6 +83,7 @@ def process_lha(lha_path):
                     print(f"Skipping {full_path} - not a valid music file for uade123")
                     os.remove(full_path)
         if tasks:
+            output_dir = os.path.dirname(lha_path)
             archive_base = os.path.splitext(os.path.basename(lha_path))[0]
             # Sanitize archive_base
             archive_base = ''.join(c for c in archive_base if c.isalnum() or c in ['-', '_', ' ']).replace(' ', '_')
@@ -89,9 +91,9 @@ def process_lha(lha_path):
             for idx, (full_path, sub) in enumerate(tasks):
                 rel_path = os.path.relpath(full_path, tmpdir)
                 if total_songs == 1:
-                    output_mp3 = f"{archive_base}.mp3"
+                    output_mp3 = os.path.join(output_dir, f"{archive_base}.mp3")
                 else:
-                    output_mp3 = f"{archive_base}_{idx + 1}.mp3"
+                    output_mp3 = os.path.join(output_dir, f"{archive_base}_{idx + 1}.mp3")
                 if os.path.exists(output_mp3) and os.path.getsize(output_mp3) > 0:
                     print(f"Skipping {output_mp3} as it already exists and is not empty")
                     continue
