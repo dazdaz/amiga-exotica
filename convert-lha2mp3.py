@@ -17,8 +17,11 @@ def convert_to_mp3(full_path, sub, output_mp3):
     lame_proc = subprocess.Popen(lame_cmd, stdin=uade_proc.stdout)
     uade_proc.stdout.close()  # Allow uade_proc to receive a SIGPIPE if lame_proc exits
     uade_proc.wait()
+    if uade_proc.returncode != 0:
+        lame_proc.terminate()
+        raise subprocess.CalledProcessError(uade_proc.returncode, uade_cmd)
     lame_proc.wait()
-    if uade_proc.returncode != 0 or lame_proc.returncode != 0:
+    if lame_proc.returncode != 0:
         raise subprocess.CalledProcessError(lame_proc.returncode, lame_cmd)
 
 def main(paths):
@@ -98,7 +101,11 @@ def process_lha(lha_path):
                     print(f"Skipping {output_mp3} as it already exists and is not empty")
                     continue
                 print(f"Converting: {rel_path} (subsong {sub}) to {output_mp3}")
-                convert_to_mp3(full_path, sub, output_mp3)
+                try:
+                    convert_to_mp3(full_path, sub, output_mp3)
+                except subprocess.CalledProcessError as e:
+                    print(f"Failed to convert {rel_path} (subsong {sub}) to {output_mp3}: {e}")
+                    continue
         for f in processed_files:
             os.remove(f)
 
