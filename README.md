@@ -7,7 +7,7 @@ https://www.exotica.org.uk/wiki/UnExoticA
 
 ## Tools Included 🛠️
 
-### `mirror-exotica.py` 📥
+### `mirror-unexotica.py` 📥
 
 This script mirrors Amiga music from the `UnExoticA/Game` directory on `ftp.exotica.org.uk`.
 
