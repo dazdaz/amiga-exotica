@@ -10,6 +10,9 @@
 
 * ***convert-lha2mp3.py*** Converts all files within a compressed .lha file from their native format into .mp3 (assuming uade123 supports).
 
+---
+
+## Sample
 
 This is a sample of some excellent digital music from bygone days. Strangely enough, it never ages.
 <video src="https://github.com/user-attachments/assets/6886278e-4dd0-4114-8eeb-85b939f2172b">controls</video>
