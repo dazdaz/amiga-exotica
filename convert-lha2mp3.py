@@ -4,16 +4,23 @@ import subprocess
 import argparse
 import tempfile
 import multiprocessing
+import signal
+import sys
+
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
 def convert_to_mp3(full_path, sub, output_mp3):
     uade_cmd = ['uade123', '-f', '-', '-e', 'raw', '-s', str(sub), full_path]
     lame_cmd = ['lame', '-r', '-s', '44.1', '-m', 's', '-V', '2', '-', output_mp3]
     uade_proc = subprocess.Popen(uade_cmd, stdout=subprocess.PIPE)
     lame_proc = subprocess.Popen(lame_cmd, stdin=uade_proc.stdout)
-    uade_proc.stdout.close() # Allow uade_proc to receive a SIGPIPE if lame_proc exits
+    uade_proc.stdout.close()  # Allow uade_proc to receive a SIGPIPE if lame_proc exits
     uade_proc.wait()
     lame_proc.wait()
     if uade_proc.returncode != 0 or lame_proc.returncode != 0:
         raise subprocess.CalledProcessError(lame_proc.returncode, lame_cmd)
+
 def main(paths):
     lha_paths = []
     for path in paths:
@@ -26,8 +33,18 @@ def main(paths):
         else:
             raise ValueError(f"Invalid path: {path} is neither a directory nor an .lha file")
     if lha_paths:
-        with multiprocessing.Pool() as pool:
+        pool = multiprocessing.Pool(initializer=init_worker)
+        try:
             pool.map(process_lha, lha_paths)
+        except KeyboardInterrupt:
+            print("Caught KeyboardInterrupt, terminating workers")
+            pool.terminate()
+            pool.join()
+            sys.exit(1)
+        else:
+            pool.close()
+            pool.join()
+
 def process_lha(lha_path):
     with tempfile.TemporaryDirectory() as tmpdir:
         # Extract the LHA archive to the temporary directory
@@ -75,10 +92,14 @@ def process_lha(lha_path):
                     output_mp3 = f"{archive_base}.mp3"
                 else:
                     output_mp3 = f"{archive_base}_{idx + 1}.mp3"
+                if os.path.exists(output_mp3) and os.path.getsize(output_mp3) > 0:
+                    print(f"Skipping {output_mp3} as it already exists and is not empty")
+                    continue
                 print(f"Converting: {rel_path} (subsong {sub}) to {output_mp3}")
                 convert_to_mp3(full_path, sub, output_mp3)
         for f in processed_files:
             os.remove(f)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process .lha files in directories or individual .lha files, extract, check subsongs, and convert them to MP3 using uade123 and lame in parallel.")
     parser.add_argument('paths', nargs='+', type=str, help="Paths to the directories containing .lha files or individual .lha files")
