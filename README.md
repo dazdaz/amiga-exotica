@@ -1,6 +1,7 @@
-# Amiga Exotica Tools 🎶
+# Amiga Exotica UnExotica Tools 🎶
 
 A collection of Python scripts for downloading, playing, and converting classic Amiga game music from the UnExoticA archive.
+https://www.exotica.org.uk/wiki/UnExoticA
 
 ---
 
