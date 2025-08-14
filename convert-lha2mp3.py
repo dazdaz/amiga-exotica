@@ -64,12 +64,13 @@ def process_lha(lha_path):
             for f in files:
                 full_path = os.path.join(root, f)
                 try:
-                    # Get info about subsongs
+                    # Get info about subsongs with timeout to prevent hangs
                     info_process = subprocess.run(
                         ['uade123', '--get-info', full_path],
                         capture_output=True,
                         text=True,
-                        check=True
+                        check=True,
+                        timeout=10  # Timeout in seconds; adjust if needed for slower systems
                     )
                     output = info_process.stdout
                     # Parse the output
@@ -86,14 +87,19 @@ def process_lha(lha_path):
                         processed_files.add(full_path)
                         for sub in range(min_sub, max_sub + 1):
                             tasks.append((full_path, sub))
+                    else:
+                        print(f"Skipping {full_path} - no subsong info found")
+                except subprocess.TimeoutExpired:
+                    print(f"Timeout expired for uade123 --get-info on {full_path} - skipping file")
+                    continue
                 except subprocess.CalledProcessError:
                     print(f"Skipping {full_path} - not a valid music file for uade123")
-                    os.remove(full_path)
+                    continue
         if tasks:
             output_dir = os.path.dirname(lha_path)
             archive_base = os.path.splitext(os.path.basename(lha_path))[0]
-            # Sanitize archive_base
-            archive_base = ''.join(c for c in archive_base if c.isalnum() or c in ['-', '_', ' ']).replace(' ', '_')
+            # Sanitize archive_base more thoroughly
+            archive_base = ''.join(c for c in archive_base if c.isalnum() or c in ['-', '_']).strip('_-')
             total_songs = len(tasks)
             for idx, (full_path, sub) in enumerate(tasks):
                 rel_path = os.path.relpath(full_path, tmpdir)
@@ -110,8 +116,12 @@ def process_lha(lha_path):
                 except subprocess.CalledProcessError as e:
                     print(f"Failed to convert {rel_path} (subsong {sub}) to {output_mp3}: {e}")
                     continue
+        # Always try to remove processed files, even if exceptions occurred
         for f in processed_files:
-            os.remove(f)
+            try:
+                os.remove(f)
+            except OSError as e:
+                print(f"Warning: Failed to remove {f}: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process .lha files in directories or individual .lha files, extract, check subsongs, and convert them to MP3 using uade123 and lame in parallel.")
