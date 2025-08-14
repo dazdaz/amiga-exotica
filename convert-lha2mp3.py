@@ -28,7 +28,11 @@ def main(paths):
     lha_paths = []
     for path in paths:
         if os.path.isdir(path):
+            norm_path = os.path.normpath(path)
+            if os.path.basename(norm_path).endswith('-skipthis'):
+                continue
             for root, dirs, files in os.walk(path):
+                dirs[:] = [d for d in dirs if not d.endswith('-skipthis')]
                 for filename in files:
                     if filename.lower().endswith('.lha'):
                         lha_paths.append(os.path.join(root, filename))
