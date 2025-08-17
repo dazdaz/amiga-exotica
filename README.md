@@ -25,6 +25,13 @@ Plays all the music files contained within a single `.lha` archive without leavi
 * **Function:** Uses the `uade123` player to handle playback of native Amiga music formats.
 * **Clean:** Automatically extracts tracks for playback and removes the temporary files afterward.
 
+
+### Playing all .mp3 files with VLC
+* Create a playlist dynamically
+```bash
+find . -type f -name "*.mp3" -size +0c -exec /Applications/VLC.app/Contents/MacOS/VLC {} +
+```
+
 ### `convert-lha2mp3.py` 🔄
 
 Extracts and converts all playable music modules from a `.lha` archive into the `.mp3` format.
